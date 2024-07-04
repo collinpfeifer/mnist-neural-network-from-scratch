@@ -23,7 +23,13 @@ data_train = data[1000:m].T
 Y_train = data_train[0]
 # Input data for the NN
 X_train = data_train[1:n]
-print(X_train)
+# We want to match the range of inputs with the range of the activation function
+# In this case we use ReLU and Softmax which both are between [0,1]
+# So I think thats why each pixel is scaled between [0,1] in the training data
+# The NN does not work without this change
+# The input range does impact the output range and vice versa
+# When i was training with pixel values ranging [0,255], the gradient 
+# descent was super small and fell towards 0 rather than 1000
 X_train = X_train / 255.
 
 # checking the shape
