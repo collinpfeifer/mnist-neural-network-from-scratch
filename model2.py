@@ -2,17 +2,11 @@ import numpy as np
 import pandas as pd 
 from matplotlib import pyplot as plt 
 
-data = pd.read_csv("./digit-recognizer/train.csv")
-test = pd.read_csv("./digit-recognizer/test.csv")
+data = pd.read_csv('./digit-recognizer/train.csv')
 
 data = np.array(data)
-test = np.array(test)
-
-# Checking the shape of the data array
 m, n = data.shape
 print(m,n)
-
-# Randomizing the data
 np.random.shuffle(data)
 
 # This is the data that will be used for testing the NN after it has been trained
@@ -29,9 +23,6 @@ data_train = data[1000:m].T
 Y_train = data_train[0]
 # Input data for the NN
 X_train = data_train[1:n]
-
-# Inputs for the NN 
-X_test = test.T / 255.
 # We want to match the range of inputs with the range of the activation function
 # In this case we use ReLU and Softmax which both are between [0,1]
 # So I think thats why each pixel is scaled between [0,1] in the training data
@@ -43,12 +34,14 @@ X_train = X_train / 255.
 
 # checking the shape
 print(X_train[:, 0].shape)
-print(X_test.shape)
+
 # Initializing weights and biases for hidden and output layers of the NN
+# Updating the number of nodes in the hidden layer to be the mean of the input and 
+# output to see if that makes a difference
 def init_params():
-    W1 = np.random.normal(size=(10, 784)) * np.sqrt(1./(784))
-    b1 = np.random.normal(size=(10, 1)) * np.sqrt(1./10)
-    W2 = np.random.normal(size=(10, 10)) * np.sqrt(1./20)
+    W1 = np.random.normal(size=(397, 784)) * np.sqrt(1./(784))
+    b1 = np.random.normal(size=(397, 1)) * np.sqrt(1./397)
+    W2 = np.random.normal(size=(10, 397)) * np.sqrt(1./20)
     b2 = np.random.normal(size=(10, 1)) * np.sqrt(1./(784))
     return W1, b1, W2, b2
     # # W1 is the weights for the hidden layer, we make a 2d array that is 10 x 784
@@ -148,7 +141,6 @@ def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha):
     return W1, b1, W2, b2
 
 def get_predictions(A2):
-    # Returns the index of the max value that was found from softmax
     return np.argmax(A2, 0)
 
 def get_accuracy(predictions, Y):
@@ -166,53 +158,11 @@ def gradient_descent(X,Y, iterations, alpha):
 
     return W1, b1, W2, b2
 
-# This is having the model go through forward propagation to make a guess
-# This is effectively having the model use it's training to find the right answers
-def make_predictions(X, W1, b1, W2, b2):
-    # Forward propagation 
-    _,_,_,A2 = forward_propagation(W1,b1,W2,b2,X)
-    predictions = get_predictions(A2)
-    return predictions
-
-def test_predictions(X, Y, index, W1, b1, W2, b2):
-    # Current image at the index
-    current_image = X[:, index, None]
-    # Make a prediction based on the forward propagation
-    prediction = make_predictions(X[:, index, None], W1, b1, W2, b2)
-    # Get the right answer from Y
-    label = Y[index]
-    print("Prediction: ", prediction)
-    print("Label: ", label)
-    
-    # Converting the normalized pixels back into [0,255]
-    # So that they can be shown with matplotlib
-    # I think this array is originally 1 dimensional
-    # And it was flattened for inout reasons with the NN 
-    # But it actually will create a pciture if we return it to 
-    # A (28,28) shape array where its 28 rows, and each row has
-    # 28 columns in it, hence a 28 x 28 pixel image
-    current_image = current_image.reshape((28,28)) * 255
-    plt.gray()
-    plt.imshow(current_image, interpolation='nearest')
-    plt.show()
 
 def main():
-    # Train model through gradient descent
     W1, b1, W2, b2 = gradient_descent(X_train,Y_train, 500, 0.1)
-    # Make predictions from a set of saved images for testing
-    predictions = make_predictions(X_dev, W1, b1, W2, b2)
-    print(get_accuracy(predictions, Y_dev))
-    test_predictions(X_dev,Y_dev,103, W1, b1, W2, b2)
-    # Now to make predictions based on the given testing data and turn it into a csv file
-    data = {
-        "ImageId": np.arange(X_test.shape[1]),
-        "Label": make_predictions(X_test, W1, b1, W2, b2)
-    }
-    print(len(np.arange(X_test.shape[1])))
-    print(len(make_predictions(X_test, W1, b1, W2, b2)))
-    df = pd.DataFrame(data)
-    df.to_csv("submission.csv")
 
 
 if __name__ == '__main__':
     main()
+
