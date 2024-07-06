@@ -1,6 +1,6 @@
 import numpy as np
-import pandas as pd 
-from matplotlib import pyplot as plt 
+import pandas as pd
+from matplotlib import pyplot as plt
 
 data = pd.read_csv("./digit-recognizer/train.csv")
 test = pd.read_csv("./digit-recognizer/test.csv")
@@ -10,7 +10,7 @@ test = np.array(test)
 
 # Checking the shape of the data array
 m, n = data.shape
-print(m,n)
+print(m, n)
 
 # Randomizing the data
 np.random.shuffle(data)
@@ -30,7 +30,8 @@ Y_train = data_train[0]
 # Input data for the NN
 X_train = data_train[1:n]
 
-# Inputs for the NN 
+
+# Competitio inputs for the NN 
 X_test = test.T / 255.
 # We want to match the range of inputs with the range of the activation function
 # In this case we use ReLU and Softmax which both are between [0,1]
@@ -44,6 +45,7 @@ X_train = X_train / 255.
 # checking the shape
 print(X_train[:, 0].shape)
 print(X_test.shape)
+
 # Initializing weights and biases for hidden and output layers of the NN
 def init_params():
     W1 = np.random.normal(size=(10, 784)) * np.sqrt(1./(784))
@@ -136,7 +138,6 @@ def backward_propagation(Z1, A1, Z2, A2, W2, X, Y):
     db1 = 1 / m * np.sum(dZ1)
 
     return dW1, db1, dW2, db2
-
 def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha):
     # Update all the weights and biases based on the respective derivatives
     # and on the learning rate, alpha
@@ -201,18 +202,17 @@ def main():
     W1, b1, W2, b2 = gradient_descent(X_train,Y_train, 500, 0.1)
     # Make predictions from a set of saved images for testing
     predictions = make_predictions(X_dev, W1, b1, W2, b2)
-    print(get_accuracy(predictions, Y_dev))
-    test_predictions(X_dev,Y_dev,103, W1, b1, W2, b2)
-    # Now to make predictions based on the given testing data and turn it into a csv file
+    print("Accuracy: ", get_accuracy(predictions, Y_dev))
+    test_predictions(X_dev, Y_dev, 103, W1, b1, W2, b2)
+    # Now to make predictions based on the given testing data and turn it into a 
+    # csv file
     data = {
         "ImageId": np.arange(X_test.shape[1]),
         "Label": make_predictions(X_test, W1, b1, W2, b2)
     }
-    print(len(np.arange(X_test.shape[1])))
-    print(len(make_predictions(X_test, W1, b1, W2, b2)))
+    # Turn into a dataframe and convert to a CSV
     df = pd.DataFrame(data)
     df.to_csv("submission.csv")
-
 
 if __name__ == '__main__':
     main()

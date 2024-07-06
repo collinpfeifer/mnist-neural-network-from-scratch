@@ -3,8 +3,11 @@ import pandas as pd
 from matplotlib import pyplot as plt 
 
 data = pd.read_csv('./digit-recognizer/train.csv')
+test = pd.read_csv("./digit-recognizer/test.csv")
 
 data = np.array(data)
+test = np.array(test)
+
 m, n = data.shape
 print(m,n)
 np.random.shuffle(data)
@@ -23,6 +26,7 @@ data_train = data[1000:m].T
 Y_train = data_train[0]
 # Input data for the NN
 X_train = data_train[1:n]
+X_test = test.T / 255.
 # We want to match the range of inputs with the range of the activation function
 # In this case we use ReLU and Softmax which both are between [0,1]
 # So I think thats why each pixel is scaled between [0,1] in the training data
@@ -30,6 +34,8 @@ X_train = data_train[1:n]
 # The input range does impact the output range and vice versa
 # When i was training with pixel values ranging [0,255], the gradient 
 # descent was super small and fell towards 0 rather than 1000
+
+# Competition inputs for the NN
 X_train = X_train / 255.
 
 # checking the shape
@@ -38,6 +44,8 @@ print(X_train[:, 0].shape)
 # Initializing weights and biases for hidden and output layers of the NN
 # Updating the number of nodes in the hidden layer to be the mean of the input and 
 # output to see if that makes a difference
+
+
 def init_params():
     W1 = np.random.normal(size=(397, 784)) * np.sqrt(1./(784))
     b1 = np.random.normal(size=(397, 1)) * np.sqrt(1./397)
@@ -63,6 +71,8 @@ def init_params():
 
 # Activation function ReLU for the hidden layer
 # Z is the computed values for the hidden layers after weights and biases
+
+
 def ReLU(Z):
     # Going through each element in Z and if its greater than 0, return values
     # If not return 0
@@ -70,6 +80,8 @@ def ReLU(Z):
 
 # Line of ReLU has a max slope of 1, and a minimum slope of 0 
 # This just takes the highest of those
+
+
 def derivative_ReLU(Z):
     return Z > 0
 
@@ -81,6 +93,8 @@ def derivative_ReLU(Z):
 # Is correct
 # Pretty simple find percent of total function
 # Softmax is the vector generalization of the Sigmoid function
+
+
 def softmax(Z):
     Z -= np.max(Z, axis=0)  # Subtract max value for numerical stability
     A = np.exp(Z) / np.sum(np.exp(Z), axis=0)
@@ -88,6 +102,8 @@ def softmax(Z):
 
 # Function to return a matrix of the correct number that was supposed to be percieved
 # With a 1 at that position and 0 at every other position
+
+
 def one_hot(Y):
     # size of Y for the size of the matrix
     # Y.max() assumes 0-9 and we want 0-10
@@ -104,6 +120,8 @@ def one_hot(Y):
     
 
 # Perform forward propagation in our NN
+
+
 def forward_propagation(W1, b1, W2, b2, X):
     # Take the dot product of the weights from the hidden layer and the pixels
     # And add the biases with matrix addition
@@ -113,6 +131,7 @@ def forward_propagation(W1, b1, W2, b2, X):
     A2 = softmax(Z2)
 
     return Z1, A1, Z2, A2
+
 
 def backward_propagation(Z1, A1, Z2, A2, W2, X, Y):
     m = Y.size
@@ -130,6 +149,7 @@ def backward_propagation(Z1, A1, Z2, A2, W2, X, Y):
 
     return dW1, db1, dW2, db2
 
+
 def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha):
     # Update all the weights and biases based on the respective derivatives
     # and on the learning rate, alpha
@@ -140,11 +160,14 @@ def update_params(W1, b1, W2, b2, dW1, db1, dW2, db2, alpha):
 
     return W1, b1, W2, b2
 
+
 def get_predictions(A2):
     return np.argmax(A2, 0)
 
+
 def get_accuracy(predictions, Y):
     return np.sum(predictions == Y) / Y.size
+
 
 def gradient_descent(X,Y, iterations, alpha):
     W1, b1, W2, b2 = init_params()
@@ -158,11 +181,55 @@ def gradient_descent(X,Y, iterations, alpha):
 
     return W1, b1, W2, b2
 
+# This is having the model go through forward propagation to make a guess
+# This is effectively having the model use it's training to find the right answers
+
+
+def make_predictions(X, W1, b1, W2, b2):
+    # Forward propagation
+    _, _, _, A2 = forward_propagation(W1, b1, W2, b2, X)
+    predictions = get_predictions(A2)
+    return predictions
+
+
+def test_predictions(X, Y, index, W1, b1, W2, b2):
+    # Current image at the index
+    current_image = X[:, index, None]
+    # Make a prediction based on the forward propagation
+    prediction = make_predictions(X[:, index, None], W1, b1, W2, b2)
+    # Get the right answer from Y
+    label = Y[index]
+    print("Prediction: ", prediction)
+    print("Label: ", label)
+
+    # Converting the normalized pixels back into [0,255]
+    # So that they can be shown with matplotlib
+    # I think this array is originally 1 dimensional
+    # And it was flattened for inout reasons with the NN
+    # But it actually will create a pciture if we return it to
+    # A (28,28) shape array where its 28 rows, and each row has
+    # 28 columns in it, hence a 28 x 28 pixel image
+    current_image = current_image.reshape((28, 28)) * 255
+    plt.gray()
+    plt.imshow(current_image, interpolation='nearest')
+
 
 def main():
     W1, b1, W2, b2 = gradient_descent(X_train,Y_train, 500, 0.1)
+    # Make predictions from a set of saved images for testing
 
+    predictions = make_predictions(X_dev, W1, b1, W2, b2)
+    print("Accuracy: ", get_accuracy(predictions, Y_dev))
+    test_predictions(X_dev, Y_dev, 103, W1, b1, W2, b2)
+    # Now to make predictions based on the given testing data and turn it into a 
+    # csv file
+    data = {
+        "ImageId": np.arange(X_test.shape[1]),
+        "Label": make_predictions(X_test, W1, b1, W2, b2)
+    }
+    # Turn into a dataframe and convert to a CSV
+    df = pd.DataFrame(data)
+    df.to_csv('submission2.csv')
 
 if __name__ == '__main__':
     main()
-
